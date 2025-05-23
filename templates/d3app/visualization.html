@@ -1133,7 +1133,7 @@
                     )
                 }
             }], {
-                title: 'Average Assets' + 
+                title: '<b>Average Assets<b>' + 
                       (filterValue === 'approved' ? ' (Approved Only)' : 
                        filterValue === 'rejected' ? ' (Rejected Only)' : ''),
                 xaxis: {title: 'Loan Status'},
@@ -1192,7 +1192,7 @@
                     '<b>Approved Loans by Duration (Approved Only)<b>' : 
                     '<b>Approved Loans by Duration<b>',
                 xaxis: {
-                    title: 'Loan Duration (months)',
+                    title: 'Loan Duration',
                     tickvals: approvedCountByDurationData.map(item => item.loan_duration),
                     tickmode: 'array'
                 },
