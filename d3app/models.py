@@ -1,0 +1,54 @@
+from django.db import models
+import logging
+
+# Create a logger
+logger = logging.getLogger(__name__)
+
+class LoanApplication(models.Model):
+    application_date = models.DateField()
+    age = models.IntegerField()
+    annual_income = models.IntegerField()
+    credit_score = models.IntegerField()
+    employment_status = models.CharField(max_length=50)
+    education_level = models.CharField(max_length=50)
+    experience = models.IntegerField()
+    loan_amount = models.IntegerField()
+    loan_duration = models.IntegerField()
+    marital_status = models.CharField(max_length=20)
+    number_of_dependents = models.IntegerField()
+    home_ownership_status = models.CharField(max_length=50)
+    monthly_debt_payments = models.IntegerField()
+    credit_card_utilization_rate = models.FloatField()
+    number_of_open_credit_lines = models.IntegerField()
+    number_of_credit_inquiries = models.IntegerField()
+    debt_to_income_ratio = models.FloatField()
+    bankruptcy_history = models.IntegerField()
+    loan_purpose = models.CharField(max_length=100)
+    previous_loan_defaults = models.IntegerField()
+    payment_history = models.IntegerField()
+    length_of_credit_history = models.IntegerField()
+    savings_account_balance = models.IntegerField()
+    checking_account_balance = models.IntegerField()
+    total_assets = models.IntegerField()
+    total_liabilities = models.IntegerField()
+    monthly_income = models.BigIntegerField()
+    utility_bills_payment_history = models.FloatField()
+    job_tenure = models.IntegerField()
+    net_worth = models.IntegerField()
+    base_interest_rate = models.FloatField()
+    interest_rate = models.FloatField()
+    monthly_loan_payment = models.BigIntegerField()
+    total_debt_to_income_ratio = models.FloatField()
+    loan_approved = models.BooleanField()
+    risk_score = models.FloatField()
+
+    def __str__(self):
+        return f"Loan Application on {self.application_date} (Risk: {self.risk_score})"
+
+    def save(self, *args, **kwargs):
+        logger.info(f"Saving Loan Application: {self.application_date}")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        logger.info(f"Deleting Loan Application: {self.application_date}")
+        super().delete(*args, **kwargs)

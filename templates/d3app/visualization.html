@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Loan Analysis Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #eaeaea;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .dashboard-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 0 5px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .tab:hover {
+            background-color: #2980b9;
+        }
+        
+        .tab.active {
+            background-color: #2c3e50;
+        }
+        
+        .dashboard {
+            display: none;
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard.active {
+            display: block;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 0 5px;
+            text-align: center;
+            border-top: 4px solid #3498db;
+        }
+        
+        .stat-card h3 {
+            margin-top: 0;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .chart {
+            flex: 1 1 45%;
+            min-width: 300px;
+            height: 300px;
+            margin: 10px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .filter-container {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-label {
+            margin-right: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .filter-select {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+            margin-right: 20px;
+            min-width: 150px;
+        }
+        
+        .full-width-chart {
+            width: 100%;
+            height: 350px;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: White;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+
+        /* Style mới cho tooltip */
+        .plotly-notifier {
+            display: none !important;
+        }
+        
+        .hovertext {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            border: 1px solid #ddd !important;
+            border-radius: 4px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            color: #333 !important;
+            padding: 10px 15px !important;
+        }
+        
+        .hovertext .colorlegend {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-container {
+                flex-direction: column;
+            }
+            
+            .stat-card {
+                margin: 5px 0;
+            }
+            
+            .chart {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bank Loan Analysis Dashboard</h1>
+        </div>
+        
+        <div class="dashboard-tabs">
+            <button class="tab active" onclick="showDashboard('overview')">OVERVIEW</button>
+            <button class="tab" onclick="showDashboard('applicants')">APPLICANTS PROFILE</button>
+            <button class="tab" onclick="showDashboard('risk')">RISK & APPROVAL ANALYSIS</button>
+        </div>
+        
+        <!-- OVERVIEW DASHBOARD -->
+        <div id="overview" class="dashboard active">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Total Applications</h3>
+                    <div class="value">{{ total_applications }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Interest Rate</h3>
+                    <div class="value">{{ avg_interest_rate }}%</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg DTI Ratio</h3>
+                    <div class="value">{{ avg_dti }}%</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Approved Loan Amount</h3>
+                    <div class="value">${{ approved_loan_amount }}M</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="approvalStatusChart" class="chart"></div>
+                <div id="loanPurposeChart" class="chart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="applicationsByMonthChart" class="chart"></div>
+                <div id="applicationsByDurationChart" class="chart"></div>
+            </div>
+        </div>
+        
+        <!-- APPLICANTS PROFILE DASHBOARD -->
+        <div id="applicants" class="dashboard">
+            <div class="filter-container">
+                <span class="filter-label">Filter by Loan Status:</span>
+                <select class="filter-select" id="applicantsFilter" onchange="filterApplicantsData()">
+                    <option value="all">All Applications</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="rejected">Rejected Only</option>
+                </select>
+            </div>
+            
+            <h2>Demographic Information</h2>
+            <div class="chart-container">
+                <div id="ageDistributionChart" class="chart"></div>
+                <div id="employmentStatusChart" class="chart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="maritalStatusChart" class="chart"></div>
+                <div id="educationLevelChart" class="chart"></div>
+            </div>
+            
+            <h2>Financial Profile</h2>
+            <div class="chart-container">
+                <div id="creditScoreChart" class="chart"></div>
+                <div id="homeOwnershipChart" class="chart"></div>
+            </div>
+
+            
+            <div class="chart-container">
+                <div id="incomeVsEducationChart" class="chart"></div>
+                <div id="dtiByEmploymentChart" class="chart"></div>
+            </div>
+
+            <div class="chart-container">
+    <div id="annualIncomeChart" class="chart"></div>
+    <!-- Other financial profile charts... -->
+</div>
+            
+            <div id="incomeVsDebtChart" class="full-width-chart"></div>
+        </div>
+
+
+        <!-- RISK & APPROVAL ANALYSIS DASHBOARD -->
+        <div id="risk" class="dashboard">
+            <div class="filter-container">
+                <span class="filter-label">Filter by Loan Status:</span>
+                <select class="filter-select" id="riskFilter" onchange="filterRiskData()">
+                    <option value="all">All Applications</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="rejected">Rejected Only</option>
+                </select>
+            </div>
+            
+            <h2></h2>
+            <div class="chart-container">
+                <div id="approvalByEducationChart" class="chart"></div>
+                <div id="approvalByEmploymentChart" class="chart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="approvalByMaritalChart" class="chart"></div>
+                <div id="approvalByDependentsChart" class="chart"></div>
+            </div>
+            
+            <h2></h2>
+            <div class="chart-container">
+                <div id="approvalByPurposeChart" class="chart"></div>
+                <div id="avgRiskScoreChart" class="chart"></div>
+                
+            </div>
+            
+            <div class="chart-container">
+                <div id="avgAssetsByStatusChart" class="chart"></div>
+                <div id="avgLiabilitiesByStatusChart" class="chart"></div>
+            </div>
+            
+            <div id="approvedCountByDurationChart" class="full-width-chart"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard switching
+        function showDashboard(dashboardId) {
+            document.querySelectorAll('.dashboard').forEach(dash => {
+                dash.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(dashboardId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Redraw charts when switching dashboards
+            if(dashboardId === 'overview') {
+                renderOverviewCharts();
+            } else if(dashboardId === 'applicants') {
+                renderApplicantsCharts();
+            } else if(dashboardId === 'risk') {
+                renderRiskCharts();
+            }
+        }
+        
+        // Filter functions
+        function filterApplicantsData() {
+            const filterValue = document.getElementById('applicantsFilter').value;
+            renderApplicantsCharts(filterValue);
+        }
+        
+        function filterRiskData() {
+            const filterValue = document.getElementById('riskFilter').value;
+            renderRiskCharts(filterValue);
+        }
+        
+        // Chart rendering functions
+        function renderOverviewCharts() {
+            // Approval Status Chart
+            const approvalStatusData = JSON.parse('{{ approval_status_data|escapejs }}');
+            const totalApplications = approvalStatusData.reduce((sum, item) => sum + item.count, 0);
+    
+            Plotly.newPlot('approvalStatusChart', [{
+                values: approvalStatusData.map(item => item.count),
+                labels: approvalStatusData.map(item => item.status),
+                type: 'pie',
+                hole: 0.4,
+                marker: { 
+                    colors: approvalStatusData.map(item => 
+                        item.status === 'Approved' ? '#2ecc71' : '#e74c3c'
+                    ) 
+                },
+                hoverinfo: 'none', // Tắt tooltip mặc định
+                textinfo: 'none',
+                // Custom tooltip
+                hovertemplate: '<b>Loan Status</b>: %{label}<br>' +
+                              '<b>Total Applications</b>: %{value}<br>' +
+                              '<b>Percentage</b>: %{percent:.1%}' +
+                              '<extra></extra>',
+                texttemplate: '%{percent:.1%}'
+            }], {
+                title: '<b>Loan Approval Status<b>',
+                margin: {t: 30, b: 30, l: 30, r: 30},
+                hoverlabel: {
+                    bgcolor: 'white',
+                    font: {
+                        family: 'Arial',
+                        size: 14,
+                        color: '#333'
+                    }
+                }
+            });
+            
+            // Loan Purpose Chart
+            const loanPurposeData = JSON.parse('{{ loan_purpose_data|escapejs }}');
+            Plotly.newPlot('loanPurposeChart', [{
+                values: loanPurposeData.map(item => item.count),
+                labels: loanPurposeData.map(item => item.loan_purpose),
+                type: 'pie',
+                hole: 0.4,
+                hoverinfo: 'none',
+                hovertemplate: '<b>Purpose</b>: %{label}<br>' +
+                              '<b>Total Applications</b>: %{value}<br>' +
+                              '<b>Percentage</b>: %{percent:.1%}' +
+                              '<extra></extra>'
+            }], {
+                title: 'Loan Purpose Distribution',
+                margin: {t: 30, b: 30, l: 30, r: 30}
+            });
+            
+            // Applications by Month Chart
+            const appsByMonthData = JSON.parse('{{ applications_by_month_data|escapejs }}');
+            Plotly.newPlot('applicationsByMonthChart', [{
+                x: appsByMonthData.map(item => {
+                    const date = new Date(item.month);
+                    const month = date.toLocaleString('en-US', { month: 'short' });
+                    const year = date.getFullYear();
+                    return `${month} - ${year}`;
+                }),
+                y: appsByMonthData.map(item => item.count),
+                type: 'scatter',
+                mode: 'lines',
+                fill: 'tozeroy',
+                line: {color: '#2ecc71', width: 2},
+                fillcolor: 'rgba(52, 152, 219, 0.4)',
+                hoverinfo: 'x+y',
+                hovertemplate: '<b>Month</b>: %{x}<br>' +
+                '<b>Total Applications</b>: %{y}' +
+                '<extra></extra>'
+            }], {
+                title: {
+                    text: '<b>TotalApplications by Month - Year<b>',
+                    font: {size: 16}
+                },
+                xaxis: {
+                    title: {text: 'Month'},
+                    gridcolor: 'rgba(200, 200, 200, 0.2)'
+                },
+                yaxis: {
+                    title: {text: ''},
+                    gridcolor: 'rgba(200, 200, 200, 0.2)'
+                },
+                margin: {t: 50, b: 60, l: 60, r: 30},
+                plot_bgcolor: 'rgba(255, 255, 255, 0.8)',
+                paper_bgcolor: 'rgba(255, 255, 255, 0.8)',
+                hovermode: 'closest'
+            });
+            
+            // Applications by Duration Chart
+            const appsByDurationData = JSON.parse('{{ applications_by_duration_data|escapejs }}');
+            const durationColors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ];
+            
+            Plotly.newPlot('applicationsByDurationChart', [{
+                x: appsByDurationData.map(item => item.duration),
+                y: appsByDurationData.map(item => item.count),
+                type: 'bar',
+                hovertemplate: '<b>Loan Duration</b>: %{x}<br>' +
+                '<b>Total Applications</b>: %{y}' +
+                '<extra></extra>',
+                marker: {
+                    color: appsByDurationData.map((item, i) => 
+                        durationColors[i % durationColors.length]
+                    )
+                }
+            }], {
+                title: '<b>Total Applications by Loan Duration<b>',
+                xaxis: {
+                    title: 'Loan Duration',
+                    tickmode: 'array',
+                    tickvals: appsByDurationData.map(item => item.duration), // Hiển thị chính xác các giá trị duration
+                    ticktext: appsByDurationData.map(item => item.duration + 'm') // Có thể thêm 'm' để chỉ tháng
+                },
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+        
+        }
+        
+        function renderApplicantsCharts(filterValue = 'all') {
+            const rawData = JSON.parse('{{ raw_applicant_data|escapejs }}');
+            let filteredData = rawData;
+            
+            if(filterValue === 'approved') {
+                filteredData = rawData.filter(item => item.loan_approved);
+            } else if(filterValue === 'rejected') {
+                filteredData = rawData.filter(item => !item.loan_approved);
+            }
+            
+            // Age Distribution Chart
+            const ageGroups = [
+                {"age_group": "Young Adults", "range": [18, 25]},
+                {"age_group": "Adults", "range": [26, 40]},
+                {"age_group": "Middle Aged", "range": [41, 100]}
+            ];
+            
+            const ageCounts = ageGroups.map(group => {
+                const count = filteredData.filter(item => 
+                    item.age >= group.range[0] && item.age <= group.range[1]
+                ).length;
+                return {age_group: group.age_group, count: count};
+            }).filter(item => item.count > 0);
+            
+            Plotly.newPlot('ageDistributionChart', [{
+                values: ageCounts.map(item => item.count),
+                labels: ageCounts.map(item => item.age_group),
+                type: 'pie',
+                hole: 0.4,
+                hovertemplate: '<b>Age Group</b>: %{label}<br>' +
+                '<b>Applicants</b>: %{value}<br>' +
+                '<b>Percentage</b>: %{percent:.1%}' +
+                '<extra></extra>',
+            }], {
+                title: '<b>Age Group Distribution<b>',
+                margin: {t: 30, b: 30, l: 30, r: 30}
+            });
+            
+            // Employment Status Chart
+            const employmentData = {};
+            filteredData.forEach(item => {
+                if(!employmentData[item.employment_status]) {
+                    employmentData[item.employment_status] = 0;
+                }
+                employmentData[item.employment_status]++;
+            });
+            
+            const employmentChartData = Object.keys(employmentData).map(key => ({
+                status: key,
+                count: employmentData[key]
+            }));
+            
+            Plotly.newPlot('employmentStatusChart', [{
+                values: employmentChartData.map(item => item.count),
+                labels: employmentChartData.map(item => item.status),
+                type: 'pie',
+                hole: 0.4,
+                hovertemplate: '<b>Employment Status</b>: %{label}<br>' +
+                '<b>Applicants</b>: %{value}<br>' +
+                '<b>Percentage</b>: %{percent:.1%}' +
+                '<extra></extra>'
+            }], {
+                title: '<b>Employment Status Distribution<b>',
+                margin: {t: 30, b: 30, l: 30, r: 30}
+            });
+            
+            // Marital Status Chart
+            const maritalData = {};
+            filteredData.forEach(item => {
+                if(!maritalData[item.marital_status]) {
+                    maritalData[item.marital_status] = 0;
+                }
+                maritalData[item.marital_status]++;
+            });
+            
+            const maritalChartData = Object.keys(maritalData).map(key => ({
+                status: key,
+                count: maritalData[key]
+            }));
+            
+            Plotly.newPlot('maritalStatusChart', [{
+                values: maritalChartData.map(item => item.count),
+                labels: maritalChartData.map(item => item.status),
+                type: 'pie',
+                hole: 0.4,
+                hovertemplate: '<b>Marital Status</b>: %{label}<br>' +
+                '<b>Applicants</b>: %{value}<br>' +
+                '<b>Percentage</b>: %{percent:.1%}' +
+                '<extra></extra>'
+            }], {
+                title: '<b>Marital Status Distribution<b>',
+                margin: {t: 30, b: 30, l: 30, r: 30}
+            });
+            
+            // Education Level Chart
+            const educationData = {};
+            filteredData.forEach(item => {
+                if(!educationData[item.education_level]) {
+                    educationData[item.education_level] = 0;
+                }
+                educationData[item.education_level]++;
+            });
+            
+            const educationChartData = Object.keys(educationData).map(key => ({
+                level: key,
+                count: educationData[key]
+            }));
+            
+            const educationColors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ];
+            
+            Plotly.newPlot('educationLevelChart', [{
+                type: 'pie',
+                hole: 0.4,
+                labels: educationChartData.map(item => item.level),
+                values: educationChartData.map(item => item.count),
+                hovertemplate: '<b>%{label}</b><br>' +
+                               '<b>Applicants</b>: %{value}<br>' +
+                               '<b>Percentage</b>:%{percent}<br>' +
+                               '<extra></extra>',
+                marker: {
+                    colors: educationColors
+                },
+                textinfo: 'percent', // Hiển thị nhãn và phần trăm
+                insidetextorientation: 'radial'
+            }], {
+                title: '<b>Education Level Distribution<b>',
+                margin: {t: 40, b: 30, l: 30, r: 30}
+            });
+            
+            // Credit Score Chart
+            const creditScoreRanges = [
+                {"range": "Poor", "min": 300, "max": 579},
+                {"range": "Fair", "min": 580, "max": 669},
+                {"range": "Good", "min": 670, "max": 739},
+                {"range": "Very Good", "min": 740, "max": 799},
+                {"range": "Excellent", "min": 800, "max": 850}
+            ];
+            
+            const creditScoreCounts = creditScoreRanges.map(range => {
+                const count = filteredData.filter(item => 
+                    item.credit_score >= range.min && item.credit_score <= range.max
+                ).length;
+                return {range: range.range, count: count};
+            }).filter(item => item.count > 0);
+            
+            const creditScoreColors = [
+                '#d62728', '#ff7f0e', '#2ca02c', '#1f77b4', '#9467bd'
+            ];
+            
+            Plotly.newPlot('creditScoreChart', [{
+                x: creditScoreCounts.map(item => item.range),
+                y: creditScoreCounts.map(item => item.count),
+                type: 'bar',
+                hovertemplate: '<b>Credit Range</b>: %{x}<br>' +
+                '<b>Applicants</b>: %{y}' +
+                '<extra></extra>',
+                marker: {
+                    color: creditScoreCounts.map((item, i) => 
+                        creditScoreColors[i % creditScoreColors.length]
+                    )
+                }
+            }], {
+                title: '<b>Credit Score Distribution<b>',
+                xaxis: {title: 'Credit Score Range'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+
+            
+            // Home Ownership Chart
+            const homeOwnershipData = {};
+            filteredData.forEach(item => {
+                if(!homeOwnershipData[item.home_ownership_status]) {
+                    homeOwnershipData[item.home_ownership_status] = 0;
+                }
+                homeOwnershipData[item.home_ownership_status]++;
+            });
+            
+            const homeOwnershipChartData = Object.keys(homeOwnershipData).map(key => ({
+                status: key,
+                count: homeOwnershipData[key]
+            }));
+            
+            Plotly.newPlot('homeOwnershipChart', [{
+                values: homeOwnershipChartData.map(item => item.count),
+                labels: homeOwnershipChartData.map(item => item.status),
+                type: 'pie',
+                hole: 0.4,
+                hovertemplate: '<b>Ownership</b>: %{label}<br>' +
+                '<b>Applicants</b>: %{value}<br>' +
+                '<b>Percentage</b>: %{percent:.1%}' +
+                '<extra></extra>'
+            }], {
+                title: '<b>Home Ownership Status<b>',
+                margin: {t: 30, b: 30, l: 30, r: 30}
+            });
+            
+            // Income vs Education Chart
+            const incomeVsEducationData = {};
+            filteredData.forEach(item => {
+                if(!incomeVsEducationData[item.education_level]) {
+                    incomeVsEducationData[item.education_level] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                incomeVsEducationData[item.education_level].sum += item.monthly_income;
+                incomeVsEducationData[item.education_level].count++;
+            });
+            
+            const incomeVsEducationChartData = Object.keys(incomeVsEducationData).map(key => ({
+                education_level: key,
+                avg_income: incomeVsEducationData[key].sum / incomeVsEducationData[key].count
+            }));
+            
+            const incomeEducationColors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ];
+            
+            Plotly.newPlot('incomeVsEducationChart', [{
+                x: incomeVsEducationChartData.map(item => item.education_level),
+                y: incomeVsEducationChartData.map(item => item.avg_income),
+                type: 'bar',
+                hovertemplate: '<b>Education Level</b>: %{x}<br>' +
+                '<b>Avg Monthly Income</b>: $%{y:,.0f}' +
+                '<extra></extra>',
+                marker: {
+                    color: incomeVsEducationChartData.map((item, i) => 
+                        incomeEducationColors[i % incomeEducationColors.length]
+                    )
+                }
+            }], {
+                title: '<b>Avg Monthly Income by Education Level<b>',
+                xaxis: {title: 'Education Level'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+            
+            
+            // DTI by Employment Chart
+            const dtiByEmploymentData = {};
+            filteredData.forEach(item => {
+                if(!dtiByEmploymentData[item.employment_status]) {
+                    dtiByEmploymentData[item.employment_status] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                dtiByEmploymentData[item.employment_status].sum += item.debt_to_income_ratio;
+                dtiByEmploymentData[item.employment_status].count++;
+            });
+            
+            const dtiByEmploymentChartData = Object.keys(dtiByEmploymentData).map(key => ({
+                employment: key,
+                dti: (dtiByEmploymentData[key].sum / dtiByEmploymentData[key].count) * 100
+            }));
+
+            const dtiEmploymentColors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ];
+            
+            Plotly.newPlot('dtiByEmploymentChart', [{
+                x: dtiByEmploymentChartData.map(item => item.employment),
+                y: dtiByEmploymentChartData.map(item => item.dti),
+                type: 'bar',
+                hovertemplate: '<b>Employment Status</b>: %{x}<br>' +
+                '<b>Average DTI Ratio</b>: %{y:.1f}%<br>' +
+                '<extra></extra>',
+                marker: {
+                    color: dtiByEmploymentChartData.map((item, i) => 
+                        dtiEmploymentColors[i % dtiEmploymentColors.length]
+                    )
+                }
+            }], {
+                title: '<b>Avg DTI Ratio by Employment<b>',
+                xaxis: {title: 'Employment Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+
+            
+            
+            // Income vs Debt Chart
+            Plotly.newPlot('incomeVsDebtChart', [{
+                x: filteredData.map(item => item.monthly_income),
+                y: filteredData.map(item => item.monthly_debt_payments),
+                mode: 'markers',
+                type: 'scatter',
+                marker: {
+                    size: 8,
+                    color: filteredData.map(item => item.loan_approved ? '#2ecc71' : '#e74c3c')
+                }
+            }], {
+                title: '<b>Monthly Income vs Monthly Debt Payments<b>',
+                xaxis: {title: 'Monthly Income'},
+                yaxis: {title: 'Monthly Debt Payments'},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+
+            //Annual Income Distribution Histogram with $50,000 bins
+            const annualIncomes = filteredData.map(item => item.annual_income);
+            const binSize = 50000;
+            const maxIncome = Math.max(...annualIncomes);
+            const binCount = Math.ceil(maxIncome / binSize);
+            
+            // Create bins
+            const bins = Array.from({length: binCount}, (_, i) => ({
+                start: i * binSize,
+                end: (i + 1) * binSize,
+                count: 0
+            }));
+            
+            // Count values in each bin
+            annualIncomes.forEach(income => {
+                const binIndex = Math.floor(income / binSize);
+                if (binIndex < bins.length) {
+                    bins[binIndex].count++;
+                } else {
+                    // Handle case where income is exactly at the max (edge case)
+                    bins[bins.length - 1].count++;
+                }
+            });
+            
+            // Prepare data for Plotly
+            const binLabels = bins.map(bin => {
+                if (bin.end > 1000000) {
+                    return `$${(bin.start/1000000).toFixed(1)}M+`;
+                }
+                return `$${bin.start/1000}k-$${bin.end/1000}k`;
+            });
+            
+            Plotly.newPlot('annualIncomeChart', [{
+                x: binLabels,
+                y: bins.map(bin => bin.count),
+                type: 'bar',
+                hovertemplate: '<b>Income Range</b>: %{x}<br>' +
+                '<b>Number of Applicants</b>: %{y}<br>' +
+                '<extra></extra>',
+                marker: {
+                    color: bins.map((_, i) => 
+                        ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'][i % 10]
+                    )
+                }
+            }], {
+                title: `<b>Annual Income Distribution (${filterValue === 'all' ? 'All' : 
+                       filterValue === 'approved' ? 'Approved' : 'Rejected'})<b>`,
+                xaxis: {title: 'Income Range'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 100, l: 60, r: 30}
+            });
+            
+        }
+        
+        function renderRiskCharts(filterValue = 'all') {
+            const rawData = JSON.parse('{{ raw_applicant_data|escapejs }}');
+            let filteredData = rawData;
+            
+            if(filterValue === 'approved') {
+                filteredData = rawData.filter(item => item.loan_approved);
+            } else if(filterValue === 'rejected') {
+                filteredData = rawData.filter(item => !item.loan_approved);
+            }
+            
+            // Tạo hàm helper để tính toán approval rate từ dữ liệu đã filter
+            const calculateApprovalData = (data, groupByField) => {
+                const groupedData = {};
+                
+                data.forEach(item => {
+                    const groupValue = item[groupByField];
+                    if (!groupedData[groupValue]) {
+                        groupedData[groupValue] = {
+                            Approved: 0,
+                            Rejected: 0
+                        };
+                    }
+                    
+                    if (item.loan_approved) {
+                        groupedData[groupValue].Approved++;
+                    } else {
+                        groupedData[groupValue].Rejected++;
+                    }
+                });
+                
+                return Object.keys(groupedData).map(key => ({
+                    [groupByField]: key,
+                    Approved: groupedData[key].Approved,
+                    Rejected: groupedData[key].Rejected
+                }));
+            };
+    
+            // Approval by Education Chart
+            const approvalByEducationData = calculateApprovalData(
+                filterValue === 'all' ? rawData : filteredData, 
+                'education_level'
+            );
+            const educationLevels = [...new Set(approvalByEducationData.map(item => item.education_level))];
+            
+            const approvedData = educationLevels.map(level => {
+                const item = approvalByEducationData.find(i => i.education_level === level);
+                return item ? item.Approved : 0;
+            });
+            
+            const rejectedData = educationLevels.map(level => {
+                const item = approvalByEducationData.find(i => i.education_level === level);
+                return item ? item.Rejected : 0;
+            });
+            
+            Plotly.newPlot('approvalByEducationChart', [
+                {
+                    x: educationLevels,
+                    y: approvedData,
+                    name: 'Approved',
+                    type: 'bar',
+                    marker: { color: '#2ecc71' },
+                    visible: filterValue !== 'rejected' // Ẩn nếu filter là Rejected Only
+                },
+                {
+                    x: educationLevels,
+                    y: rejectedData,
+                    name: 'Rejected',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    visible: filterValue !== 'approved' // Ẩn nếu filter là Approved Only
+                }
+            ], {
+                title: '<b>Approval Rate by Education Level<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                barmode: 'group',
+                xaxis: {title: 'Education Level'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+            
+            // Approval by Employment Chart
+            const approvalByEmploymentData = calculateApprovalData(
+                filterValue === 'all' ? rawData : filteredData, 
+                'employment_status'
+            );
+            const employmentStatuses = [...new Set(approvalByEmploymentData.map(item => item.employment_status))];
+            
+            const approvedEmpData = employmentStatuses.map(status => {
+                const item = approvalByEmploymentData.find(i => i.employment_status === status);
+                return item ? item.Approved : 0;
+            });
+            
+            const rejectedEmpData = employmentStatuses.map(status => {
+                const item = approvalByEmploymentData.find(i => i.employment_status === status);
+                return item ? item.Rejected : 0;
+            });
+            
+            Plotly.newPlot('approvalByEmploymentChart', [
+                {
+                    x: employmentStatuses,
+                    y: approvedEmpData,
+                    name: 'Approved',
+                    type: 'bar',
+                    marker: { color: '#2ecc71' },
+                    visible: filterValue !== 'rejected'
+                },
+                {
+                    x: employmentStatuses,
+                    y: rejectedEmpData,
+                    name: 'Rejected',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    visible: filterValue !== 'approved'
+                }
+            ], {
+                title: '<b>Approval Rate by Employment Status<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                barmode: 'group',
+                xaxis: {title: 'Employment Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Approval by Marital Status Chart
+            const approvalByMaritalData = calculateApprovalData(
+                filterValue === 'all' ? rawData : filteredData, 
+                'marital_status'
+            );
+            const maritalStatuses = [...new Set(approvalByMaritalData.map(item => item.marital_status))];
+            
+            const approvedMaritalData = maritalStatuses.map(status => {
+                const item = approvalByMaritalData.find(i => i.marital_status === status);
+                return item ? item.Approved : 0;
+            });
+            
+            const rejectedMaritalData = maritalStatuses.map(status => {
+                const item = approvalByMaritalData.find(i => i.marital_status === status);
+                return item ? item.Rejected : 0;
+            });
+            
+            Plotly.newPlot('approvalByMaritalChart', [
+                {
+                    x: maritalStatuses,
+                    y: approvedMaritalData,
+                    name: 'Approved',
+                    type: 'bar',
+                    marker: { color: '#2ecc71' },
+                    visible: filterValue !== 'rejected'
+                },
+                {
+                    x: maritalStatuses,
+                    y: rejectedMaritalData,
+                    name: 'Rejected',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    visible: filterValue !== 'approved'
+                }
+            ], {
+                title: '<b>Approval Rate by Marital Status<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                barmode: 'group',
+                xaxis: {title: 'Marital Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Approval by Dependents Chart
+            const approvalByDependentsData = calculateApprovalData(
+                filterValue === 'all' ? rawData : filteredData, 
+                'number_of_dependents'
+            );
+            const dependents = [...new Set(approvalByDependentsData.map(item => item.number_of_dependents))].sort();
+            
+            const approvedDependentsData = dependents.map(num => {
+                const item = approvalByDependentsData.find(i => i.number_of_dependents === num);
+                return item ? item.Approved : 0;
+            });
+            
+            const rejectedDependentsData = dependents.map(num => {
+                const item = approvalByDependentsData.find(i => i.number_of_dependents === num);
+                return item ? item.Rejected : 0;
+            });
+            
+            Plotly.newPlot('approvalByDependentsChart', [
+                {
+                    x: dependents,
+                    y: approvedDependentsData,
+                    name: 'Approved',
+                    type: 'bar',
+                    marker: { color: '#2ecc71' },
+                    visible: filterValue !== 'rejected'
+                },
+                {
+                    x: dependents,
+                    y: rejectedDependentsData,
+                    name: 'Rejected',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    visible: filterValue !== 'approved'
+                }
+            ], {
+                title: '<b>Approval Rate by Number of Dependents<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                barmode: 'group',
+                xaxis: {title: 'Number of Dependents'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Approval by Purpose Chart
+            const approvalByPurposeData = calculateApprovalData(
+                filterValue === 'all' ? rawData : filteredData, 
+                'loan_purpose'
+            );
+            const purposes = [...new Set(approvalByPurposeData.map(item => item.loan_purpose))];
+            
+            const approvedPurposeData = purposes.map(purpose => {
+                const item = approvalByPurposeData.find(i => i.loan_purpose === purpose);
+                return item ? item.Approved : 0;
+            });
+            
+            const rejectedPurposeData = purposes.map(purpose => {
+                const item = approvalByPurposeData.find(i => i.loan_purpose === purpose);
+                return item ? item.Rejected : 0;
+            });
+            
+            Plotly.newPlot('approvalByPurposeChart', [
+                {
+                    x: purposes,
+                    y: approvedPurposeData,
+                    name: 'Approved',
+                    type: 'bar',
+                    marker: { color: '#2ecc71' },
+                    visible: filterValue !== 'rejected'
+                },
+                {
+                    x: purposes,
+                    y: rejectedPurposeData,
+                    name: 'Rejected',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' },
+                    visible: filterValue !== 'approved'
+                }
+            ], {
+                title: '<b>Approval Rate by Loan Purpose<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                barmode: 'group',
+                xaxis: {title: 'Loan Purpose'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Avg Risk Score Chart
+            const avgRiskScoreData = JSON.parse('{{ avg_risk_score_data|escapejs }}');
+            const filteredAvgRiskScoreData = avgRiskScoreData.filter(item => 
+                filterValue === 'all' || 
+                (filterValue === 'approved' && item.status === 'Approved') ||
+                (filterValue === 'rejected' && item.status === 'Rejected')
+            );
+            
+            Plotly.newPlot('avgRiskScoreChart', [{
+                x: filteredAvgRiskScoreData.map(item => item.status),
+                y: filteredAvgRiskScoreData.map(item => item.avg_risk),
+                type: 'bar',
+                marker: {
+                    color: filteredAvgRiskScoreData.map(item => 
+                        item.status === 'Approved' ? '#2ecc71' : '#e74c3c'
+                    )
+                }
+            }], {
+                title: '<b>Average Risk Score<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                xaxis: {title: 'Loan Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Avg Assets by Status Chart
+            const avgAssetsByStatusData = JSON.parse('{{ avg_assets_by_status_data|escapejs }}');
+            const filteredAvgAssetsData = avgAssetsByStatusData.filter(item => 
+                filterValue === 'all' || 
+                (filterValue === 'approved' && item.status === 'Approved') ||
+                (filterValue === 'rejected' && item.status === 'Rejected')
+            );
+            
+            Plotly.newPlot('avgAssetsByStatusChart', [{
+                x: filteredAvgAssetsData.map(item => item.status),
+                y: filteredAvgAssetsData.map(item => item.avg_assets),
+                type: 'bar',
+                marker: {
+                    color: filteredAvgAssetsData.map(item => 
+                        item.status === 'Approved' ? '#2ecc71' : '#e74c3c'
+                    )
+                }
+            }], {
+                title: 'Average Assets' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                xaxis: {title: 'Loan Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+            // Avg Liabilities by Status Chart
+            const avgLiabilitiesByStatusData = JSON.parse('{{ avg_liabilities_by_status_data|escapejs }}');
+            const filteredAvgLiabilitiesData = avgLiabilitiesByStatusData.filter(item => 
+                filterValue === 'all' || 
+                (filterValue === 'approved' && item.status === 'Approved') ||
+                (filterValue === 'rejected' && item.status === 'Rejected')
+            );
+            
+            Plotly.newPlot('avgLiabilitiesByStatusChart', [{
+                x: filteredAvgLiabilitiesData.map(item => item.status),
+                y: filteredAvgLiabilitiesData.map(item => item.avg_liabilities),
+                type: 'bar',
+                marker: {
+                    color: filteredAvgLiabilitiesData.map(item => 
+                        item.status === 'Approved' ? '#2ecc71' : '#e74c3c'
+                    )
+                }
+            }], {
+                title: '<b>Average Liabilities<b>' + 
+                      (filterValue === 'approved' ? ' (Approved Only)' : 
+                       filterValue === 'rejected' ? ' (Rejected Only)' : ''),
+                xaxis: {title: 'Loan Status'},
+                yaxis: {title: ''},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+    
+
+            // Approved Count by Duration Chart
+            const approvedCountByDurationData = JSON.parse('{{ approved_count_by_duration_data|escapejs }}');
+            const durationColors = [
+                '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+            ];
+            
+            Plotly.newPlot('approvedCountByDurationChart', [{
+                x: approvedCountByDurationData.map(item => item.loan_duration),
+                y: approvedCountByDurationData.map(item => item.count),
+                type: 'bar',
+                marker: {
+                    color: approvedCountByDurationData.map((item, i) => 
+                        durationColors[i % durationColors.length]
+                    )
+                },
+                hovertemplate: '<b>Loan Duration</b>: %{x} months<br>' +
+                '<b>Approved Loans</b>: %{y}' +
+                '<extra></extra>'
+            }], {
+                title: filterValue === 'approved' ? 
+                    '<b>Approved Loans by Duration (Approved Only)<b>' : 
+                    '<b>Approved Loans by Duration<b>',
+                xaxis: {
+                    title: 'Loan Duration (months)',
+                    tickvals: approvedCountByDurationData.map(item => item.loan_duration),
+                    tickmode: 'array'
+                },
+                yaxis: {title: 'Number of Approved Loans'},
+                margin: {t: 30, b: 60, l: 60, r: 30}
+            });
+        }
+    </script>
+</body>
+</html>
